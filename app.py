@@ -1,12 +1,21 @@
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import requests
 
 app = Flask(__name__)
 
-DEXSCREENER_API = "https://api.dexscreener.com/latest/dex/pairs/solana"
+DEXSCREENER_API = "https://api.dexscreener.com/latest/dex/search/?q=solana"
 
-def fetch_filtered_tokens():
+# Market cap tier configurations
+TIER_CONFIG = {
+    "micro": {"min": 0, "max": 1_000_000, "volume_pct": 50, "liquidity_pct": 5},
+    "small": {"min": 1_000_000, "max": 10_000_000, "volume_pct": 20, "liquidity_pct": 10},
+    "mid": {"min": 10_000_000, "max": 50_000_000, "volume_pct": 10, "liquidity_pct": 15},
+    "high": {"min": 50_000_000, "max": float("inf"), "volume_pct": 5, "liquidity_pct": 20},
+}
+
+def fetch_filtered_tokens(tier):
+    config = TIER_CONFIG.get(tier, TIER_CONFIG["micro"])
     try:
         res = requests.get(DEXSCREENER_API)
         data = res.json().get("pairs", [])
@@ -20,10 +29,13 @@ def fetch_filtered_tokens():
             if not (mcap and volume_1h and liquidity):
                 continue
 
+            if not (config["min"] <= mcap < config["max"]):
+                continue
+
             volume_ratio = (volume_1h / mcap) * 100
             liquidity_ratio = (liquidity / mcap) * 100
 
-            if liquidity_ratio >= 10 and volume_ratio >= 20:
+            if liquidity_ratio >= config["liquidity_pct"] and volume_ratio >= config["volume_pct"]:
                 filtered.append({
                     "name": token.get("baseToken", {}).get("name"),
                     "symbol": token.get("baseToken", {}).get("symbol"),
@@ -43,8 +55,9 @@ def fetch_filtered_tokens():
 
 @app.route('/')
 def index():
-    tokens = fetch_filtered_tokens()
-    return render_template('index.html', tokens=tokens)
+    tier = request.args.get("tier", "micro")
+    tokens = fetch_filtered_tokens(tier)
+    return render_template('index.html', tokens=tokens, selected_tier=tier)
 
 if __name__ == '__main__':
     app.run(debug=True)
