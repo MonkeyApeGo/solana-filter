@@ -17,11 +17,20 @@
             text-align: center;
         }
 
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        select {
+            padding: 8px;
+            font-size: 16px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             background-color: #fff;
-            margin-top: 20px;
         }
 
         th, td {
@@ -97,6 +106,16 @@
 <body>
     <h1>Solana Token Filter</h1>
     <p style="text-align: center;">Auto-refreshes every 60 seconds</p>
+
+    <form method="get" action="/">
+        <label for="tier">Select Market Cap Tier:</label>
+        <select id="tier" name="tier" onchange="this.form.submit()">
+            <option value="micro" {% if selected_tier == 'micro' %}selected{% endif %}>Micro Cap (&lt; $1M)</option>
+            <option value="small" {% if selected_tier == 'small' %}selected{% endif %}>Small Cap ($1M – $10M)</option>
+            <option value="mid" {% if selected_tier == 'mid' %}selected{% endif %}>Mid Cap ($10M – $50M)</option>
+            <option value="high" {% if selected_tier == 'high' %}selected{% endif %}>High Cap (&gt; $50M)</option>
+        </select>
+    </form>
 
     <table>
         <thead>
